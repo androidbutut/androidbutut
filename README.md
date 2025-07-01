@@ -1,7 +1,3 @@
----
-title: "nDang - Web Developer"
-description: "Portofolio dan profil GitHub nDang"
----
 
 ### Hi there 👋, I'm nDang!
 

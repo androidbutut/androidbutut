@@ -31,15 +31,15 @@ Masih pemula tapi terus belajar dan berkembang setiap hari 💻🌱
 ### 📈 GitHub Stats
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=ndang&show_icons=true&theme=radical" alt="nDang's GitHub Stats" />
+  <img src="https://github-readme-stats.vercel.app/api?username=androidbutut&show_icons=true&theme=radical" alt="nDang's GitHub Stats" />
 </p>
 
 ---
 
 ### 🤝 Yuk Kenalan
 
-- 💌 DM aja di [GitHub Discussions](https://github.com/ndang)
-- 🌐 Portofolio (dalam proses, pakai Jekyll 😎)
+- 💌 DM aja di [GitHub Discussions](https://github.com/androidbutut)
+- 🌐 Portofolio (dalam proses 😎)
 
 ---
 

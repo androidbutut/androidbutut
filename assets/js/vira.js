@@ -1,22 +1,6 @@
-// === Firebase & Auth Setup ===
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  doc, addDoc, getDocs, query, orderBy, getFirestore, collection, deleteDoc, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCi_hDVGY1Mxu2XkHc9lU2e2dvQxNn93mE",
-  authDomain: "ai-apps-4e725.firebaseapp.com",
-  projectId: "ai-apps-4e725",
-  storageBucket: "ai-apps-4e725.appspot.com",
-  messagingSenderId: "893169320014",
-  appId: "1:893169320014:web:bef13994bb20c349b3031f"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+let auth;
+let db;
 
 // === DOM Elements ===
 const input = document.getElementById("message-input");
@@ -28,8 +12,6 @@ let inputFromVoice = false;
 
 // === Auth UI State ===
 function updateAuthUI(user) {
-  const logoutBtn = document.getElementById("logoutUserBtn");
-  const loginBtn = document.getElementById("loginUserBtn");
   if (user) {
     logoutBtn?.classList.remove("d-none");
     loginBtn?.classList.add("d-none");
@@ -39,18 +21,23 @@ function updateAuthUI(user) {
   }
 }
 
-onAuthStateChanged(auth, updateAuthUI);
-
 // === Logout Handler ===
-function setupLogoutBtn() {
-  const logoutBtn = document.getElementById("logoutUserBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
+function setupLogoutButton() {
+  logoutBtn?.addEventListener("click", async () => {
+    if (!auth) {
+      console.error("Auth object not available for logout.");
+      alert("Error: Layanan autentikasi belum siap.");
+      return;
+    }
+    try {
+      await auth.signOut(); // Use the global 'auth' instance
       alert("✅ Kamu telah logout.");
       window.location.reload();
-    });
-  }
+    } catch (err) {
+      console.error("❌ Gagal logout:", err);
+      alert("Terjadi kesalahan saat logout. Silakan coba lagi.");
+    }
+  });
 }
 
 // === Chat History ===

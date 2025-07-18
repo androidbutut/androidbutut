@@ -6,99 +6,207 @@ permalink: /kelola
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kelola Admin - VIRA</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Admin - VIRA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Optional: Add some basic styling for better loading feedback */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.5rem;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body class="bg-dark text-light p-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">👥 Kelola Admin</h2>
-    <button id="logoutBtn" class="btn btn-outline-light btn-sm">Logout</button>
-  </div>
+    <div class="loading-overlay d-none" id="loadingOverlay">
+        Memuat data...
+    </div>
 
-  <table class="table table-dark table-bordered table-sm align-middle">
-    <thead>
-      <tr>
-        <th>Email</th>
-        <th>Nama</th>
-        <th>Role</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody id="adminTable"></tbody>
-  </table>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">👥 Kelola Admin</h2>
+        <button id="logoutBtn" class="btn btn-outline-light btn-sm">Logout</button>
+    </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore, getDocs, updateDoc, doc, collection
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import {
-      getAuth, onAuthStateChanged, signOut
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    <div class="table-responsive">
+        <table class="table table-dark table-bordered table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Nama</th>
+                    <th>Role</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="adminTable">
+                <tr>
+                    <td colspan="4" class="text-center">Memuat data pengguna...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCi_hDVGY1Mxu2XkHc9lU2e2dvQxNn93mE",
-      authDomain: "ai-apps-4e725.firebaseapp.com",
-      projectId: "ai-apps-4e725",
-      storageBucket: "ai-apps-4e725.appspot.com",
-      messagingSenderId: "893169320014",
-      appId: "1:893169320014:web:bef13994bb20c349b3031f"
-    };
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import {
+            getFirestore, getDocs, updateDoc, doc, collection
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import {
+            getAuth, onAuthStateChanged, signOut
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+        // Konfigurasi Firebase (pastikan ini sama dengan yang di firebase-config.js/local.js)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCi_hDVGY1Mxu2XkHc9lU2e2dvQxNn93mE",
+            authDomain: "ai-apps-4e725.firebaseapp.com",
+            projectId: "ai-apps-4e725",
+            storageBucket: "ai-apps-4e725.appspot.com",
+            messagingSenderId: "893169320014",
+            appId: "1:893169320014:web:bef13994bb20c349b3031f"
+        };
 
-    const table = document.getElementById("adminTable");
-    const usersRef = collection(db, "users");
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return (window.location.href = "/");
-      const userSnap = await getDocs(collection(db, "users"));
-      const thisUser = userSnap.docs.find(u => u.id === user.uid);
-      if (!thisUser?.data().isAdmin) {
-        alert("Akses ditolak.");
-        signOut(auth);
-        window.location.href = "/";
-      }
-      loadUsers();
-    });
+        const adminTable = document.getElementById("adminTable");
+        const loadingOverlay = document.getElementById("loadingOverlay");
+        const usersRef = collection(db, "users");
 
-    async function loadUsers() {
-      const snapshot = await getDocs(usersRef);
-      table.innerHTML = "";
-      snapshot.forEach(d => {
-        const u = d.data();
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${u.email}</td>
-          <td>${u.name || "-"}</td>
-          <td>${u.isAdmin ? "Admin" : "User"}</td>
-          <td>
-            <button class="btn btn-sm ${u.isAdmin ? 'btn-danger' : 'btn-success'}" onclick="toggleAdmin('${d.id}', ${u.isAdmin})">
-              ${u.isAdmin ? 'Cabut Admin' : 'Jadikan Admin'}
-            </button>
-          </td>
-        `;
-        table.appendChild(row);
-      });
-    }
+        // Fungsi untuk menampilkan/menyembunyikan overlay loading
+        function showLoading() {
+            loadingOverlay.classList.remove("d-none");
+        }
 
-    window.toggleAdmin = async (uid, status) => {
-      const ref = doc(db, "users", uid);
-      await updateDoc(ref, {
-        isAdmin: !status,
-        role: !status ? "admin" : "user"
-      });
-      loadUsers();
-    };
+        function hideLoading() {
+            loadingOverlay.classList.add("d-none");
+        }
 
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await signOut(auth);
-      window.location.href = "/";
-    });
-  </script>
+        // Cek status autentikasi dan peran admin saat halaman dimuat
+        onAuthStateChanged(auth, async (user) => {
+            showLoading(); // Tampilkan loading saat cek autentikasi
+            if (!user) {
+                hideLoading();
+                return (window.location.href = "/"); // Redirect jika tidak login
+            }
+
+            try {
+                // Fetch semua user untuk menemukan user yang sedang login
+                // Pertimbangkan untuk hanya fetch user saat ini jika user base sangat besar
+                const userSnap = await getDocs(usersRef);
+                const thisUserDoc = userSnap.docs.find(u => u.id === user.uid);
+                
+                // Pastikan user ada di koleksi 'users' dan memiliki peran admin
+                if (!thisUserDoc || !thisUserDoc.data().isAdmin) {
+                    alert("Akses ditolak. Anda tidak memiliki izin admin.");
+                    await signOut(auth); // Log out jika bukan admin
+                    hideLoading();
+                    return (window.location.href = "/");
+                }
+                
+                loadUsers(); // Muat daftar pengguna jika admin
+            } catch (error) {
+                console.error("Error saat memeriksa peran admin:", error);
+                alert("Terjadi kesalahan saat memverifikasi peran admin. Silakan coba lagi.");
+                await signOut(auth);
+                hideLoading();
+                window.location.href = "/";
+            }
+        });
+
+        // Fungsi untuk memuat dan menampilkan daftar pengguna
+        async function loadUsers() {
+            adminTable.innerHTML = `<tr><td colspan="4" class="text-center">Memuat data pengguna...</td></tr>`;
+            showLoading();
+            try {
+                const snapshot = await getDocs(usersRef);
+                adminTable.innerHTML = ""; // Bersihkan tabel sebelum mengisi
+                if (snapshot.empty) {
+                    adminTable.innerHTML = `<tr><td colspan="4" class="text-center">Tidak ada pengguna ditemukan.</td></tr>`;
+                } else {
+                    snapshot.forEach(d => {
+                        const u = d.data();
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${u.email || "-"}</td>
+                            <td>${u.name || "-"}</td>
+                            <td>${u.isAdmin ? "Admin" : "User"}</td>
+                            <td>
+                                <button class="btn btn-sm ${u.isAdmin ? 'btn-danger' : 'btn-success'} toggle-admin-btn"
+                                        data-uid="${d.id}" data-isadmin="${u.isAdmin}">
+                                    ${u.isAdmin ? 'Cabut Admin' : 'Jadikan Admin'}
+                                </button>
+                            </td>
+                        `;
+                        adminTable.appendChild(row);
+                    });
+                    addToggleAdminEventListeners(); // Tambahkan event listener setelah tombol dibuat
+                }
+            } catch (error) {
+                console.error("Error memuat pengguna:", error);
+                adminTable.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Gagal memuat data pengguna: ${error.message}</td></tr>`;
+                alert("Gagal memuat data pengguna. Silakan periksa koneksi internet atau aturan Firestore.");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Fungsi untuk menangani toggle status admin
+        async function toggleAdminStatus(uid, currentStatus) {
+            showLoading();
+            try {
+                const ref = doc(db, "users", uid);
+                const newStatus = !currentStatus;
+                await updateDoc(ref, {
+                    isAdmin: newStatus,
+                    role: newStatus ? "admin" : "user" // Update juga field 'role'
+                });
+                alert(`Pengguna berhasil ${newStatus ? 'dijadikan' : 'dicabut'} admin.`);
+                loadUsers(); // Muat ulang daftar setelah perubahan
+            } catch (error) {
+                console.error("Error toggle admin status:", error);
+                alert(`Gagal ${!currentStatus ? 'menjadikan' : 'mencabut'} admin: ${error.message}. Pastikan aturan Firestore mengizinkan penulisan.`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Tambahkan event listener ke semua tombol toggle-admin-btn
+        function addToggleAdminEventListeners() {
+            document.querySelectorAll(".toggle-admin-btn").forEach(button => {
+                button.onclick = null; // Hapus event listener lama jika ada
+                button.addEventListener("click", () => {
+                    const uid = button.dataset.uid;
+                    const isAdmin = button.dataset.isadmin === "true"; // Perhatikan konversi string ke boolean
+                    toggleAdminStatus(uid, isAdmin);
+                });
+            });
+        }
+
+        // Event listener untuk tombol logout
+        document.getElementById("logoutBtn").addEventListener("click", async () => {
+            showLoading();
+            try {
+                await signOut(auth);
+                alert("Anda telah berhasil logout.");
+                window.location.href = "/";
+            } catch (error) {
+                console.error("Error saat logout:", error);
+                alert("Gagal logout. Silakan coba lagi.");
+            } finally {
+                hideLoading();
+            }
+        });
+    </script>
 </body>
 </html>

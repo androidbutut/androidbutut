@@ -1,39 +1,53 @@
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
 
-<script>
-  const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
-  window.APP_ENV = isLocalhost ? "development" : "production";
-  const configScript = document.createElement("script");
-  configScript.src = isLocalhost
-    ? "./assets/js/firebase-config.local.js"
-    : "./assets/js/firebase-config.js";
-  document.head.appendChild(configScript);
-</script>
-
-<!-- Inisialisasi Firebase setelah config dimuat -->
-<script>
-  window.addEventListener("load", () => {
-    const interval = setInterval(() => {
-      if (window.FIREBASE_CONFIG) {
-        firebase.initializeApp(window.FIREBASE_CONFIG);
-        console.log("✅ Firebase Initialized:", location.hostname);
-        clearInterval(interval);
-
-        // ✅ Load auth.js setelah Firebase siap
-        const authScript = document.createElement("script");
-        authScript.src = "./assets/js/auth.js";
-        document.body.appendChild(authScript);
+    <script>
+      // Fungsi untuk memuat script secara dinamis
+      function loadScript(src, callback) {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = callback;
+        script.onerror = () => console.error(`Failed to load script: ${src}`);
+        document.body.appendChild(script); // Penting: Muat di body untuk memastikan DOM ready jika script butuh akses DOM awal
       }
-    }, 50);
-  });
-</script>
-<script>
-  window.addEventListener("DOMContentLoaded", () => {
-    const ionChip = document.getElementById("env-badge");
-    if (window.APP_ENV === "development") {
-      ionChip.style.display = "block";
-    }
-  });
-</script>
+
+      window.APP_ENV = location.hostname === "localhost" || location.hostname === "127.0.0.1" ? "development" : "production";
+      const configScript = document.createElement("script");
+      configScript.src = window.APP_ENV === "development" ?
+        "./assets/js/firebase-config.local.js" :
+        "./assets/js/firebase-config.js";
+      document.head.appendChild(configScript);
+
+      // Inisialisasi Firebase dan kemudian muat auth.js dan vira.js
+      window.addEventListener("load", () => {
+        // Tunggu sampai konfigurasi Firebase dimuat dan tersedia
+        const interval = setInterval(() => {
+          if (window.FIREBASE_CONFIG) {
+            clearInterval(interval); // Hentikan polling
+
+            // Inisialisasi Firebase App jika belum terinisialisasi
+            if (!firebase.apps.length) { // Check if no Firebase app is already initialized
+              firebase.initializeApp(window.FIREBASE_CONFIG);
+              console.log("✅ Firebase App Initialized:", location.hostname);
+            } else {
+              console.log("✅ Firebase App already initialized.");
+            }
+
+            // Pastikan instance Firebase tersedia secara global
+            // Ini PENTING: Lakukan ini hanya SETELAH firebase.initializeApp()
+            window.auth = firebase.auth();
+            window.db = firebase.firestore();
+
+            // Setelah Firebase siap dan instance global tersedia,
+            // baru muat auth.js, kemudian vira.js secara berurutan
+            loadScript("./assets/js/auth.js", () => {
+              console.log("Auth.js loaded.");
+              loadScript("./assets/js/vira.js", () => {
+                console.log("Vira.js loaded.");
+              });
+            });
+          }
+        }, 50); // Cek setiap 50ms
+      });
+    </script>

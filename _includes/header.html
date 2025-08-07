@@ -1,0 +1,13 @@
+<header class="bg-white dark:bg-gray-800 shadow-md py-4">
+  <div class="container mx-auto px-4 flex justify-between items-center">
+    <a class="text-2xl font-bold text-gray-900 dark:text-white" href="{{ '/' | relative_url }}">{{ site.title | escape }}</a>
+    
+    <nav class="site-nav">
+      <div class="hidden md:block">
+        {%- for item in site.data.navigation -%}
+          <a class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md font-medium" href="{{ item.url | relative_url }}">{{ item.title }}</a>
+        {%- endfor -%}
+      </div>
+      </nav>
+  </div>
+</header>

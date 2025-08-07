@@ -1,0 +1,48 @@
+title: My Awesome Jekyll Site
+email: your-email@example.com
+description: >- # this means to ignore newlines until "baseurl:"
+baseurl: "" # subpath situs Anda, mis. /blog
+url: "" # nama host & protokol dasar untuk situs Anda, mis. http://example.com
+twitter_username: jekyllrb
+github_username:  jekyll
+
+permalink: /post/:title
+
+defaults:
+- scope:
+    type: posts
+  values:
+    layout: post
+
+- scope:
+    type: pages
+  values:
+    layout: page
+
+# Pengaturan Markdown
+markdown: kramdown
+
+# Pengaturan build
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Kecualikan dari pemrosesan.
+# Item berikut tidak akan diproses, secara default.
+# Setiap item yang tercantum di bawah kunci "exclude:" di sini akan secara otomatis ditambahkan ke
+# daftar internal "default_excludes".
+#
+# Item yang dikecualikan dapat diproses dengan secara eksplisit mencantumkan direktori atau
+# path file entri mereka dalam daftar "include:".
+#
+# exclude:
+#   - .sass-cache/
+#   - .jekyll-cache/
+#   - gemfiles/
+#   - Gemfile
+#   - Gemfile.lock
+#   - node_modules/
+#   - vendor/bundle/
+#   - vendor/cache/
+#   - vendor/gems/
+#   - vendor/ruby/

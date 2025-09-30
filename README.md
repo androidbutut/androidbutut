@@ -1,6 +1,6 @@
 ## Hi there 👋
 
-Trya Chat With Gemini AI on this ionic x cloudflare workers.
+Try Chat With Gemini AI on this ionic x cloudflare workers.
 
 <!--
 **androidbutut/androidbutut** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.

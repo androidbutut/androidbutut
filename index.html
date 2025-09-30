@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini AI Chat</title>
+  
+  <!-- Ionic CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"/>
+  
+  <style>
+    :root {
+      --ion-safe-area-top: env(safe-area-inset-top);
+      --ion-safe-area-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #f5f5f5;
+    }
+    
+    .message {
+      margin-bottom: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .message-user {
+      display: flex;
+      justify-content: flex-end;
+    }
+    
+    .message-ai {
+      display: flex;
+      justify-content: flex-start;
+    }
+    
+    .message-bubble {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      word-wrap: break-word;
+    }
+    
+    .message-user .message-bubble {
+      background: var(--ion-color-primary);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .message-ai .message-bubble {
+      background: white;
+      color: #333;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .message-time {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 4px;
+    }
+    
+    .input-area {
+      padding: 12px;
+      background: white;
+      border-top: 1px solid #ddd;
+    }
+    
+    .input-container {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+      background: white;
+      border-radius: 18px;
+      width: fit-content;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: #999;
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+    
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-10px); }
+    }
+    
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 32px;
+      text-align: center;
+      color: #666;
+    }
+    
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <ion-app>
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-title>Gemini AI Chat</ion-title>
+        <ion-buttons slot="end">
+          <ion-button id="settingsBtn">
+            <ion-icon name="settings-outline"></ion-icon>
+          </ion-button>
+          <ion-button id="clearBtn">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content>
+      <div class="chat-container">
+        <div class="messages-area" id="messagesArea">
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon">💬</div>
+            <h2>Mulai Percakapan</h2>
+            <p>Kirim pesan untuk memulai chat dengan Gemini AI</p>
+          </div>
+        </div>
+        
+        <div class="input-area">
+          <div class="input-container">
+            <ion-textarea
+              id="messageInput"
+              placeholder="Ketik pesan..."
+              rows="1"
+              auto-grow="true"
+              maxlength="2000"
+            ></ion-textarea>
+            <ion-button id="sendBtn">
+              <ion-icon slot="icon-only" name="send"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    </ion-content>
+    
+    <!-- Settings Modal -->
+    <ion-modal id="settingsModal">
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>Pengaturan</ion-title>
+          <ion-buttons slot="end">
+            <ion-button id="closeSettingsBtn">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <ion-list>
+          <ion-item>
+            <ion-label position="stacked">API Endpoint</ion-label>
+            <ion-input
+              id="apiEndpoint"
+              type="url"
+              placeholder="https://your-worker.workers.dev"
+              value=""
+            ></ion-input>
+          </ion-item>
+          
+          <ion-item lines="none">
+            <ion-label>
+              <p style="font-size: 12px; color: #666; margin-top: 8px;">
+                Masukkan URL Cloudflare Workers Anda
+              </p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+        
+        <ion-button expand="block" id="saveSettingsBtn" style="margin-top: 24px;">
+          Simpan Pengaturan
+        </ion-button>
+      </ion-content>
+    </ion-modal>
+  </ion-app>
+
+  <!-- Ionic JS -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+  <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
+  
+  <script>
+    // State management
+    let chatHistory = [];
+    let apiEndpoint = '';
+    let settingsModal;
+    let sendBtn;
+    let messageInput;
+    
+    // Initialize when page loads
+    function initApp() {
+      console.log('Initializing app...');
+      
+      // Get elements
+      settingsModal = document.querySelector('#settingsModal');
+      sendBtn = document.querySelector('#sendBtn');
+      messageInput = document.querySelector('#messageInput');
+      
+      // Load settings
+      apiEndpoint = localStorage.getItem('geminiApiEndpoint') || '';
+      const apiEndpointInput = document.querySelector('#apiEndpoint');
+      if (apiEndpointInput) {
+        apiEndpointInput.value = apiEndpoint;
+      }
+      
+      // Load chat history
+      const saved = localStorage.getItem('chatHistory');
+      if (saved) {
+        try {
+          chatHistory = JSON.parse(saved);
+          renderMessages();
+        } catch (e) {
+          console.error('Error loading chat history:', e);
+        }
+      }
+      
+      // Setup event listeners
+      setupEventListeners();
+      
+      console.log('App initialized!');
+    }
+    
+    function setupEventListeners() {
+      // Send button
+      const sendBtn = document.querySelector('#sendBtn');
+      if (sendBtn) {
+        sendBtn.onclick = function() {
+          console.log('Send button clicked!');
+          sendMessage();
+        };
+      }
+      
+      // Settings button
+      const settingsBtn = document.querySelector('#settingsBtn');
+      if (settingsBtn) {
+        settingsBtn.onclick = function() {
+          openSettingsModal();
+        };
+      }
+      
+      // Clear button
+      const clearBtn = document.querySelector('#clearBtn');
+      if (clearBtn) {
+        clearBtn.onclick = function() {
+          clearChat();
+        };
+      }
+      
+      // Close settings
+      const closeSettingsBtn = document.querySelector('#closeSettingsBtn');
+      if (closeSettingsBtn) {
+        closeSettingsBtn.onclick = function() {
+          closeSettingsModal();
+        };
+      }
+      
+      // Save settings
+      const saveSettingsBtn = document.querySelector('#saveSettingsBtn');
+      if (saveSettingsBtn) {
+        saveSettingsBtn.onclick = function() {
+          saveSettings();
+        };
+      }
+      
+      // Enter to send
+      const msgInput = document.querySelector('#messageInput');
+      if (msgInput) {
+        msgInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+      }
+    }
+    
+    function openSettingsModal() {
+      const modal = document.querySelector('#settingsModal');
+      if (modal) {
+        modal.isOpen = true;
+      }
+    }
+    
+    function closeSettingsModal() {
+      const modal = document.querySelector('#settingsModal');
+      if (modal) {
+        modal.isOpen = false;
+      }
+    }
+    
+    function saveSettings() {
+      const endpointInput = document.querySelector('#apiEndpoint');
+      const endpoint = endpointInput ? endpointInput.value.trim() : '';
+      
+      if (!endpoint) {
+        showToast('Mohon masukkan API endpoint', 'warning');
+        return;
+      }
+      
+      apiEndpoint = endpoint;
+      localStorage.setItem('geminiApiEndpoint', endpoint);
+      closeSettingsModal();
+      showToast('Pengaturan disimpan', 'success');
+    }
+    
+    async function sendMessage() {
+      const input = document.querySelector('#messageInput');
+      if (!input) return;
+      
+      const message = input.value.trim();
+      console.log('Sending message:', message);
+      
+      if (!message) {
+        console.log('Message is empty');
+        return;
+      }
+      
+      if (!apiEndpoint) {
+        showToast('Mohon atur API endpoint terlebih dahulu', 'warning');
+        openSettingsModal();
+        return;
+      }
+      
+      // Hide empty state
+      const emptyState = document.querySelector('#emptyState');
+      if (emptyState) {
+        emptyState.style.display = 'none';
+      }
+      
+      // Add user message
+      addMessage('user', message);
+      input.value = '';
+      
+      // Show typing indicator
+      showTypingIndicator();
+      
+      try {
+        console.log('Fetching to:', `${apiEndpoint}/api/chat`);
+        
+        const response = await fetch(`${apiEndpoint}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: message,
+            history: chatHistory.map(msg => ({
+              role: msg.role === 'user' ? 'user' : 'model',
+              content: msg.content
+            }))
+          })
+        });
+        
+        hideTypingIndicator();
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Response error:', errorText);
+          throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (data.success) {
+          addMessage('ai', data.reply);
+        } else {
+          throw new Error(data.error || 'Unknown error');
+        }
+        
+      } catch (error) {
+        hideTypingIndicator();
+        console.error('Full error:', error);
+        
+        // Check error type
+        if (error.message.includes('Failed to fetch')) {
+          showToast('❌ Tidak dapat terhubung ke server. Pastikan:\n1. Backend sudah di-deploy\n2. URL endpoint benar\n3. CORS sudah diaktifkan', 'danger');
+        } else {
+          showToast('Gagal mengirim pesan: ' + error.message, 'danger');
+        }
+      }
+    }
+    
+    function addMessage(role, content) {
+      const msg = {
+        role,
+        content,
+        timestamp: new Date().toISOString()
+      };
+      
+      chatHistory.push(msg);
+      localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+      
+      renderMessage(msg);
+      scrollToBottom();
+    }
+    
+    function renderMessages() {
+      const container = document.querySelector('#messagesArea');
+      if (!container) return;
+      
+      container.innerHTML = '';
+      
+      if (chatHistory.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon">💬</div>
+            <h2>Mulai Percakapan</h2>
+            <p>Kirim pesan untuk memulai chat dengan Gemini AI</p>
+          </div>
+        `;
+      } else {
+        chatHistory.forEach(msg => renderMessage(msg));
+      }
+    }
+    
+    function renderMessage(msg) {
+      const container = document.querySelector('#messagesArea');
+      if (!container) return;
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message message-${msg.role}`;
+      
+      const time = new Date(msg.timestamp).toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      messageDiv.innerHTML = `
+        <div class="message-bubble">
+          <div>${msg.content.replace(/\n/g, '<br>')}</div>
+          <div class="message-time">${time}</div>
+        </div>
+      `;
+      
+      container.appendChild(messageDiv);
+    }
+    
+    function showTypingIndicator() {
+      const container = document.querySelector('#messagesArea');
+      if (!container) return;
+      
+      const indicator = document.createElement('div');
+      indicator.id = 'typingIndicator';
+      indicator.className = 'message message-ai';
+      indicator.innerHTML = `
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+      container.appendChild(indicator);
+      scrollToBottom();
+    }
+    
+    function hideTypingIndicator() {
+      const indicator = document.querySelector('#typingIndicator');
+      if (indicator) indicator.remove();
+    }
+    
+    function scrollToBottom() {
+      const container = document.querySelector('#messagesArea');
+      if (container) {
+        setTimeout(() => {
+          container.scrollTop = container.scrollHeight;
+        }, 100);
+      }
+    }
+    
+    function clearChat() {
+      if (confirm('Hapus semua riwayat chat?')) {
+        chatHistory = [];
+        localStorage.removeItem('chatHistory');
+        renderMessages();
+        showToast('Riwayat chat dihapus', 'success');
+      }
+    }
+    
+    async function showToast(message, color = 'primary') {
+      const toast = document.createElement('ion-toast');
+      toast.message = message;
+      toast.duration = 2000;
+      toast.color = color;
+      toast.position = 'bottom';
+      
+      document.body.appendChild(toast);
+      await toast.present();
+    }
+    
+    // Wait for Ionic to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initApp, 500);
+      });
+    } else {
+      setTimeout(initApp, 500);
+    }
+  </script>
+</body>
+</html>

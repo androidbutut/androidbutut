@@ -4,119 +4,125 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gemini AI Chat</title>
-  
+
   <!-- Ionic CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"/>
-  
+
   <style>
     :root {
       --ion-safe-area-top: env(safe-area-inset-top);
       --ion-safe-area-bottom: env(safe-area-inset-bottom);
     }
-    
+
     .chat-container {
       display: flex;
       flex-direction: column;
       height: 100%;
     }
-    
+
     .messages-area {
       flex: 1;
       overflow-y: auto;
       padding: 16px;
       background: #f5f5f5;
     }
-    
+
     .message {
       margin-bottom: 16px;
       animation: fadeIn 0.3s ease;
     }
-    
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    
+
     .message-user {
       display: flex;
       justify-content: flex-end;
     }
-    
+
     .message-ai {
       display: flex;
       justify-content: flex-start;
     }
-    
+
     .message-bubble {
       max-width: 75%;
       padding: 12px 16px;
       border-radius: 18px;
       word-wrap: break-word;
     }
-    
+
     .message-user .message-bubble {
       background: var(--ion-color-primary);
       color: white;
       border-bottom-right-radius: 4px;
     }
-    
+
     .message-ai .message-bubble {
       background: white;
       color: #333;
       border-bottom-left-radius: 4px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
-    
+
     .message-bubble strong {
       font-weight: 600;
       color: #1a1a1a;
     }
-    
+
     .message-bubble em {
       font-style: italic;
     }
-    
+
     .message-bubble ul {
       list-style: disc;
       padding-left: 20px;
     }
-    
+
     .message-bubble ol {
       list-style: decimal;
       padding-left: 20px;
     }
-    
+
     .message-bubble li {
       margin: 4px 0;
     }
-    
+
     .message-bubble pre {
       white-space: pre-wrap;
       word-wrap: break-word;
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
     }
-    
+
     .message-bubble code {
       font-size: 13px;
+      font-family: monospace;
     }
-    
+
     .message-time {
       font-size: 11px;
       opacity: 0.7;
       margin-top: 4px;
     }
-    
+
     .input-area {
       padding: 12px;
       background: white;
       border-top: 1px solid #ddd;
     }
-    
+
     .input-container {
       display: flex;
       gap: 8px;
       align-items: flex-end;
     }
-    
+
     .typing-indicator {
       display: flex;
       gap: 4px;
@@ -126,7 +132,7 @@
       width: fit-content;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
-    
+
     .typing-dot {
       width: 8px;
       height: 8px;
@@ -134,15 +140,15 @@
       border-radius: 50%;
       animation: typing 1.4s infinite;
     }
-    
+
     .typing-dot:nth-child(2) { animation-delay: 0.2s; }
     .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-    
+
     @keyframes typing {
       0%, 60%, 100% { transform: translateY(0); }
       30% { transform: translateY(-10px); }
     }
-    
+
     .empty-state {
       display: flex;
       flex-direction: column;
@@ -153,11 +159,34 @@
       text-align: center;
       color: #666;
     }
-    
+
     .empty-icon {
       font-size: 64px;
       margin-bottom: 16px;
       opacity: 0.5;
+    }
+
+    .file-upload-indicator {
+      background: #e3f2fd;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .github-badge {
+      background: #28a745;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
     }
   </style>
 </head>
@@ -176,19 +205,29 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
+
     <ion-content>
       <div class="chat-container">
         <div class="messages-area" id="messagesArea">
           <div class="empty-state" id="emptyState">
             <div class="empty-icon">💬</div>
             <h2>Mulai Percakapan</h2>
-            <p>Kirim pesan untuk memulai chat dengan Gemini AI</p>
+            <p>Kirim pesan, upload file untuk dianalisis, atau atur GitHub repo untuk konteks AI</p>
           </div>
         </div>
-        
+
         <div class="input-area">
+          <div id="fileIndicator" style="display: none;"></div>
+          <div id="githubIndicator" style="display: none;"></div>
+          
           <div class="input-container">
+            <ion-buttons>
+              <input type="file" id="fileInput" style="display: none;" accept=".js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.html,.css,.json,.xml,.txt,.md">
+              <ion-button id="uploadBtn" fill="clear">
+                <ion-icon slot="icon-only" name="attach-outline"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+            
             <ion-textarea
               id="messageInput"
               placeholder="Ketik pesan..."
@@ -196,16 +235,17 @@
               auto-grow="true"
               maxlength="2000"
             ></ion-textarea>
+            
             <ion-buttons>
-            <ion-button id="sendBtn">
-              <ion-icon slot="icon-only" name="send"></ion-icon>
-            </ion-button>
+              <ion-button id="sendBtn">
+                <ion-icon slot="icon-only" name="send"></ion-icon>
+              </ion-button>
             </ion-buttons>
           </div>
         </div>
       </div>
     </ion-content>
-    
+
     <!-- Settings Modal -->
     <ion-modal id="settingsModal">
       <ion-header>
@@ -221,24 +261,24 @@
       <ion-content class="ion-padding">
         <ion-list>
           <ion-item>
-            <ion-label position="stacked">API Endpoint</ion-label>
+            <ion-label position="stacked">GitHub Repository URL (Opsional)</ion-label>
             <ion-input
-              id="apiEndpoint"
+              id="githubRepoInput"
               type="url"
-              placeholder="https://your-worker.workers.dev"
+              placeholder="https://github.com/username/repo"
               value=""
             ></ion-input>
           </ion-item>
-          
+
           <ion-item lines="none">
             <ion-label>
               <p style="font-size: 12px; color: #666; margin-top: 8px;">
-                Masukkan URL Cloudflare Workers Anda
+                Masukkan URL repository GitHub untuk memberikan konteks kepada AI tentang project Anda
               </p>
             </ion-label>
           </ion-item>
         </ion-list>
-        
+
         <ion-button expand="block" id="saveSettingsBtn" style="margin-top: 24px;">
           Simpan Pengaturan
         </ion-button>
@@ -249,31 +289,36 @@
   <!-- Ionic JS -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
   <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
-  
+
   <script>
     // State management
     let chatHistory = [];
-    let apiEndpoint = '';
+    let apiEndpoint = 'https://gemini-ai.androidbutut.workers.dev';
+    let githubRepo = '';
+    let uploadedFile = null;
     let settingsModal;
     let sendBtn;
     let messageInput;
-    
+
     // Initialize when page loads
     function initApp() {
       console.log('Initializing app...');
-      
+
       // Get elements
       settingsModal = document.querySelector('#settingsModal');
       sendBtn = document.querySelector('#sendBtn');
       messageInput = document.querySelector('#messageInput');
-      
+
       // Load settings
-      apiEndpoint = localStorage.getItem('geminiApiEndpoint') || '';
-      const apiEndpointInput = document.querySelector('#apiEndpoint');
-      if (apiEndpointInput) {
-        apiEndpointInput.value = apiEndpoint;
+      githubRepo = localStorage.getItem('githubRepo') || '';
+      const githubRepoInput = document.querySelector('#githubRepoInput');
+      if (githubRepoInput) {
+        githubRepoInput.value = githubRepo;
       }
-      
+
+      // Show GitHub badge if repo is set
+      updateGitHubIndicator();
+
       // Load chat history
       const saved = localStorage.getItem('chatHistory');
       if (saved) {
@@ -284,13 +329,13 @@
           console.error('Error loading chat history:', e);
         }
       }
-      
+
       // Setup event listeners
       setupEventListeners();
-      
+
       console.log('App initialized!');
     }
-    
+
     function setupEventListeners() {
       // Send button
       const sendBtn = document.querySelector('#sendBtn');
@@ -300,7 +345,23 @@
           sendMessage();
         };
       }
-      
+
+      // Upload button
+      const uploadBtn = document.querySelector('#uploadBtn');
+      if (uploadBtn) {
+        uploadBtn.onclick = function() {
+          document.querySelector('#fileInput').click();
+        };
+      }
+
+      // File input
+      const fileInput = document.querySelector('#fileInput');
+      if (fileInput) {
+        fileInput.onchange = function(e) {
+          handleFileUpload(e.target.files[0]);
+        };
+      }
+
       // Settings button
       const settingsBtn = document.querySelector('#settingsBtn');
       if (settingsBtn) {
@@ -308,7 +369,7 @@
           openSettingsModal();
         };
       }
-      
+
       // Clear button
       const clearBtn = document.querySelector('#clearBtn');
       if (clearBtn) {
@@ -316,7 +377,7 @@
           clearChat();
         };
       }
-      
+
       // Close settings
       const closeSettingsBtn = document.querySelector('#closeSettingsBtn');
       if (closeSettingsBtn) {
@@ -324,7 +385,7 @@
           closeSettingsModal();
         };
       }
-      
+
       // Save settings
       const saveSettingsBtn = document.querySelector('#saveSettingsBtn');
       if (saveSettingsBtn) {
@@ -332,7 +393,7 @@
           saveSettings();
         };
       }
-      
+
       // Enter to send
       const msgInput = document.querySelector('#messageInput');
       if (msgInput) {
@@ -344,220 +405,283 @@
         });
       }
     }
-    
+
+    function handleFileUpload(file) {
+      if (!file) return;
+
+      // Check file size (max 1MB)
+      if (file.size > 1024 * 1024) {
+        showToast('File terlalu besar! Maksimal 1MB', 'warning');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedFile = {
+          name: file.name,
+          content: e.target.result
+        };
+        
+        // Show file indicator
+        const indicator = document.querySelector('#fileIndicator');
+        indicator.style.display = 'block';
+        indicator.innerHTML = `
+          <div class="file-upload-indicator">
+            <span>📎 ${file.name}</span>
+            <ion-icon name="close-circle" onclick="clearUploadedFile()" style="cursor: pointer;"></ion-icon>
+          </div>
+        `;
+        
+        showToast(`File ${file.name} siap dianalisis`, 'success');
+      };
+      
+      reader.readAsText(file);
+    }
+
+    window.clearUploadedFile = function() {
+      uploadedFile = null;
+      document.querySelector('#fileIndicator').style.display = 'none';
+      document.querySelector('#fileInput').value = '';
+      showToast('File dihapus', 'medium');
+    }
+
+    function updateGitHubIndicator() {
+      const indicator = document.querySelector('#githubIndicator');
+      if (githubRepo) {
+        indicator.style.display = 'block';
+        const repoName = githubRepo.split('/').slice(-2).join('/').replace('.git', '');
+        indicator.innerHTML = `
+          <div class="github-badge">
+            <ion-icon name="logo-github"></ion-icon>
+            <span>${repoName}</span>
+          </div>
+        `;
+      } else {
+        indicator.style.display = 'none';
+      }
+    }
+
     function openSettingsModal() {
       const modal = document.querySelector('#settingsModal');
       if (modal) {
         modal.isOpen = true;
       }
     }
-    
+
     function closeSettingsModal() {
       const modal = document.querySelector('#settingsModal');
       if (modal) {
         modal.isOpen = false;
       }
     }
-    
+
     function saveSettings() {
-      const endpointInput = document.querySelector('#apiEndpoint');
-      const endpoint = endpointInput ? endpointInput.value.trim() : '';
+      const repoInput = document.querySelector('#githubRepoInput');
+      const repo = repoInput ? repoInput.value.trim() : '';
+
+      githubRepo = repo;
+      localStorage.setItem('githubRepo', repo);
       
-      if (!endpoint) {
-        showToast('Mohon masukkan API endpoint', 'warning');
-        return;
-      }
-      
-      apiEndpoint = endpoint;
-      localStorage.setItem('geminiApiEndpoint', endpoint);
+      updateGitHubIndicator();
       closeSettingsModal();
-      showToast('Pengaturan disimpan', 'success');
+      
+      if (repo) {
+        showToast('Repository GitHub disimpan! AI sekarang memiliki konteks tentang project Anda', 'success');
+      } else {
+        showToast('Pengaturan disimpan', 'success');
+      }
     }
-    
+
     async function sendMessage() {
       const input = document.querySelector('#messageInput');
       if (!input) return;
-      
+
       const message = input.value.trim();
-      console.log('Sending message:', message);
-      
-      if (!message) {
-        console.log('Message is empty');
+
+      if (!message && !uploadedFile) {
+        console.log('Message and file are empty');
         return;
       }
-      
-      if (!apiEndpoint) {
-        showToast('Mohon atur API endpoint terlebih dahulu', 'warning');
-        openSettingsModal();
-        return;
-      }
-      
+
       // Hide empty state
       const emptyState = document.querySelector('#emptyState');
       if (emptyState) {
         emptyState.style.display = 'none';
       }
-      
+
+      // Prepare display message
+      let displayMessage = message;
+      if (uploadedFile) {
+        displayMessage = `📎 ${uploadedFile.name}\n${message || 'Analisis file ini'}`;
+      }
+
       // Add user message
-      addMessage('user', message);
+      addMessage('user', displayMessage);
       input.value = '';
-      
+
       // Show typing indicator
       showTypingIndicator();
-      
+
       try {
-        console.log('Fetching to:', `${apiEndpoint}/api/chat`);
-        
+        const requestBody = {
+          message: message || 'Analisis file yang di-upload dan berikan penjelasan lengkap serta saran perbaikan',
+          history: chatHistory.slice(0, -1).map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            content: msg.content
+          }))
+        };
+
+        // Add GitHub repo context
+        if (githubRepo) {
+          requestBody.githubRepo = githubRepo;
+        }
+
+        // Add file content
+        if (uploadedFile) {
+          requestBody.fileContent = uploadedFile.content;
+        }
+
         const response = await fetch(`${apiEndpoint}/api/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            message: message,
-            history: chatHistory.map(msg => ({
-              role: msg.role === 'user' ? 'user' : 'model',
-              content: msg.content
-            }))
-          })
+          body: JSON.stringify(requestBody)
         });
-        
+
         hideTypingIndicator();
-        
-        console.log('Response status:', response.status);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Response error:', errorText);
           throw new Error(`Server error: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        console.log('Response data:', data);
-        
+
         if (data.success) {
           addMessage('ai', data.reply);
+          
+          // Clear uploaded file after successful analysis
+          if (uploadedFile) {
+            clearUploadedFile();
+          }
         } else {
           throw new Error(data.error || 'Unknown error');
         }
-        
+
       } catch (error) {
         hideTypingIndicator();
         console.error('Full error:', error);
-        
-        // Check error type
+
         if (error.message.includes('Failed to fetch')) {
-          showToast('❌ Tidak dapat terhubung ke server. Pastikan:\n1. Backend sudah di-deploy\n2. URL endpoint benar\n3. CORS sudah diaktifkan', 'danger');
+          showToast('❌ Tidak dapat terhubung ke server', 'danger');
         } else {
           showToast('Gagal mengirim pesan: ' + error.message, 'danger');
         }
       }
     }
-    
+
     function addMessage(role, content) {
       const msg = {
         role,
         content,
         timestamp: new Date().toISOString()
       };
-      
+
       chatHistory.push(msg);
       localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-      
+
       renderMessage(msg);
       scrollToBottom();
     }
-    
+
     function renderMessages() {
       const container = document.querySelector('#messagesArea');
       if (!container) return;
-      
+
       container.innerHTML = '';
-      
+
       if (chatHistory.length === 0) {
         container.innerHTML = `
           <div class="empty-state" id="emptyState">
             <div class="empty-icon">💬</div>
             <h2>Mulai Percakapan</h2>
-            <p>Kirim pesan untuk memulai chat dengan Gemini AI</p>
+            <p>Kirim pesan, upload file untuk dianalisis, atau atur GitHub repo untuk konteks AI</p>
           </div>
         `;
       } else {
         chatHistory.forEach(msg => renderMessage(msg));
       }
     }
-    
+
     function renderMessage(msg) {
       const container = document.querySelector('#messagesArea');
       if (!container) return;
-      
+
       const messageDiv = document.createElement('div');
       messageDiv.className = `message message-${msg.role}`;
-      
+
       const time = new Date(msg.timestamp).toLocaleTimeString('id-ID', {
         hour: '2-digit',
         minute: '2-digit'
       });
-      
-      // Format content untuk AI messages
+
+      // Format content
       let formattedContent = msg.content;
       if (msg.role === 'ai') {
         formattedContent = formatAIMessage(msg.content);
       } else {
         formattedContent = msg.content.replace(/\n/g, '<br>');
       }
-      
+
       messageDiv.innerHTML = `
         <div class="message-bubble">
           <div>${formattedContent}</div>
           <div class="message-time">${time}</div>
         </div>
       `;
-      
+
       container.appendChild(messageDiv);
     }
-    
+
     function formatAIMessage(text) {
-      // Hilangkan markdown formatting dan konversi ke HTML yang rapi
       let formatted = text;
-      
-      // Bold: **text** atau __text__ -> <strong>text</strong>
-      formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      formatted = formatted.replace(/__(.+?)__/g, '<strong>$1</strong>');
-      
-      // Italic: *text* atau _text_ -> <em>text</em>
-      formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
-      formatted = formatted.replace(/_(.+?)_/g, '<em>$1</em>');
-      
-      // Code inline: `code` -> <code>code</code>
-      formatted = formatted.replace(/`(.+?)`/g, '<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;font-family:monospace;">$1</code>');
-      
-      // Code block: ```code``` -> <pre>code</pre>
-      formatted = formatted.replace(/```[\s\S]*?```/g, function(match) {
-        const code = match.replace(/```/g, '').trim();
-        return `<pre style="background:#f5f5f5;padding:12px;border-radius:8px;overflow-x:auto;margin:8px 0;"><code style="font-family:monospace;font-size:13px;">${code}</code></pre>`;
+
+      // Code block: ```code```
+      formatted = formatted.replace(/```([\s\S]*?)```/g, function(match, code) {
+        return `<pre><code>${code.trim()}</code></pre>`;
       });
+
+      // Bold: **text**
+      formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       
-      // Bullet lists: - item atau * item
-      formatted = formatted.replace(/^[\-\*]\s+(.+)$/gm, '<li style="margin-left:20px;">$1</li>');
-      formatted = formatted.replace(/(<li.*<\/li>)/s, '<ul style="margin:8px 0;padding-left:0;">$1</ul>');
-      
-      // Numbered lists: 1. item
-      formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '<li style="margin-left:20px;">$1</li>');
-      
-      // Line breaks: \n -> <br>
+      // Italic: *text*
+      formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+      // Code inline: `code`
+      formatted = formatted.replace(/`(.+?)`/g, '<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;font-family:monospace;">$1</code>');
+
+      // Bullet lists
+      formatted = formatted.replace(/^[\-\*]\s+(.+)$/gm, '<li>$1</li>');
+      formatted = formatted.replace(/(<li>.*?<\/li>\n?)+/g, '<ul style="margin:8px 0;padding-left:20px;">$&</ul>');
+
+      // Numbered lists
+      formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+
+      // Line breaks
       formatted = formatted.replace(/\n/g, '<br>');
-      
+
       // Clean up extra <br> tags
       formatted = formatted.replace(/(<br>\s*){3,}/g, '<br><br>');
-      
+
       return formatted;
     }
-    
+
     function showTypingIndicator() {
       const container = document.querySelector('#messagesArea');
       if (!container) return;
-      
+
       const indicator = document.createElement('div');
       indicator.id = 'typingIndicator';
       indicator.className = 'message message-ai';
@@ -571,12 +695,12 @@
       container.appendChild(indicator);
       scrollToBottom();
     }
-    
+
     function hideTypingIndicator() {
       const indicator = document.querySelector('#typingIndicator');
       if (indicator) indicator.remove();
     }
-    
+
     function scrollToBottom() {
       const container = document.querySelector('#messagesArea');
       if (container) {
@@ -585,7 +709,7 @@
         }, 100);
       }
     }
-    
+
     function clearChat() {
       if (confirm('Hapus semua riwayat chat?')) {
         chatHistory = [];
@@ -594,18 +718,18 @@
         showToast('Riwayat chat dihapus', 'success');
       }
     }
-    
+
     async function showToast(message, color = 'primary') {
       const toast = document.createElement('ion-toast');
       toast.message = message;
-      toast.duration = 2000;
+      toast.duration = 3000;
       toast.color = color;
       toast.position = 'bottom';
-      
+
       document.body.appendChild(toast);
       await toast.present();
     }
-    
+
     // Wait for Ionic to be ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function() {
